@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:16
+    restart: always
+    environment:
+      POSTGRES_USER: fundlab
+      POSTGRES_PASSWORD: fundlab_dev_password
+      POSTGRES_DB: fundlab
+    ports:
+      - "5432:5432"
+    volumes:
+      - fundlab_pgdata:/var/lib/postgresql/data
+
+volumes:
+  fundlab_pgdata:
