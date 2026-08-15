@@ -36,6 +36,11 @@ model User {
   enrollments       Enrollment[]
   // 這個人管理的基金（經理人身份）
   managedFunds      Fund[]        @relation("FundManager")
+  investorPositions InvestorPosition[] @relation("InvestorPositions")
+  subscriptions     Subscription[]     @relation("InvestorSubscriptions")
+  investorRatings   InvestorRating[]   @relation("InvestorRatings")
+  externalEvaluations ExternalEvaluation[] @relation("ExternalEvaluations")
+  talentProfiles      TalentEvidenceProfile[] @relation("TalentProfiles")
 
   @@map("users")
 }
@@ -50,6 +55,7 @@ model Class {
   enrollments  Enrollment[]
   classCycles  ClassCycle[]
   funds        Fund[]
+  talentProfiles TalentEvidenceProfile[]
 
   @@map("classes")
 }
@@ -123,6 +129,13 @@ model Fund {
   holdings     FundHolding[]
   navSnapshots FundNavSnapshot[]
   trades       Trade[]
+  prospectusVersions  ProspectusVersion[]
+  managerStatements   ManagerStatement[]
+  managerResponses    ManagerResponse[]
+  investorPositions InvestorPosition[]
+  subscriptions     Subscription[]
+  investorRatings   InvestorRating[]
+  externalEvaluations ExternalEvaluation[]
 
   @@map("funds")
 }
@@ -175,4 +188,155 @@ model Trade {
   security Security @relation(fields: [ticker], references: [ticker])
 
   @@map("trades")
+}
+model ProspectusVersion {
+  id                 String   @id @default(uuid())
+  fundId             String   @map("fund_id")
+  versionNo          Int      @map("version_no")
+  objective          String?
+  strategy           String?
+  suitableInvestors  String?  @map("suitable_investors")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  fund Fund @relation(fields: [fundId], references: [id])
+
+  @@unique([fundId, versionNo])
+  @@map("prospectus_versions")
+}
+
+model ManagerStatement {
+  id               String   @id @default(uuid())
+  fundId           String   @map("fund_id")
+  cycleNumber      Int      @map("cycle_number")
+  topContributor   String?  @map("top_contributor")
+  topDetractor     String?  @map("top_detractor")
+  investorMessage  String?  @map("investor_message")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  fund Fund @relation(fields: [fundId], references: [id])
+
+  @@map("manager_statements")
+}
+
+model ManagerResponse {
+  id           String   @id @default(uuid())
+  fundId       String   @map("fund_id")
+  cycleNumber  Int      @map("cycle_number")
+  questionRefId String? @map("question_ref_id")
+  response     String
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  fund         Fund            @relation(fields: [fundId], references: [id])
+  questionRef  InvestorRating? @relation(fields: [questionRefId], references: [id])
+
+  @@map("manager_responses")
+}
+enum SubscriptionType {
+  subscribe
+  redeem
+}
+
+model InvestorPosition {
+  id         String   @id @default(uuid())
+  investorId String   @map("investor_id")
+  fundId     String   @map("fund_id")
+  units      Decimal  @db.Decimal(18, 4)
+  costBasis  Decimal? @map("cost_basis") @db.Decimal(18, 4)
+
+  investor User @relation("InvestorPositions", fields: [investorId], references: [id])
+  fund     Fund @relation(fields: [fundId], references: [id])
+
+  @@unique([investorId, fundId])
+  @@map("investor_positions")
+}
+
+model Subscription {
+  id          String           @id @default(uuid())
+  investorId  String           @map("investor_id")
+  fundId      String           @map("fund_id")
+  cycleNumber Int              @map("cycle_number")
+  type        SubscriptionType
+  amount      Decimal          @db.Decimal(18, 4)
+  units       Decimal          @db.Decimal(18, 4)
+  reasonNote  String?          @map("reason_note")
+  createdAt   DateTime         @default(now()) @map("created_at")
+
+  investor User @relation("InvestorSubscriptions", fields: [investorId], references: [id])
+  fund     Fund @relation(fields: [fundId], references: [id])
+
+  @@map("subscriptions")
+}
+
+model InvestorRating {
+  id           String   @id @default(uuid())
+  investorId   String   @map("investor_id")
+  fundId       String   @map("fund_id")
+  cycleNumber  Int      @map("cycle_number")
+  questionText String?  @map("question_text")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  investor         User              @relation("InvestorRatings", fields: [investorId], references: [id])
+  fund             Fund              @relation(fields: [fundId], references: [id])
+  scores           RatingScore[]
+  managerResponses ManagerResponse[]
+
+  @@unique([investorId, fundId, cycleNumber])
+  @@map("investor_ratings")
+}
+
+model RatingScore {
+  id           String @id @default(uuid())
+  ratingId     String @map("rating_id")
+  criterionKey String @map("criterion_key")
+  score        Int
+
+  rating InvestorRating @relation(fields: [ratingId], references: [id])
+
+  @@map("rating_scores")
+}
+enum RecommendTag {
+  值得追蹤
+  需要補強
+}
+
+model ExternalEvaluation {
+  id             String        @id @default(uuid())
+  evaluatorId    String        @map("evaluator_id")
+  fundId         String        @map("fund_id")
+  cycleNumber    Int           @map("cycle_number")
+  fundRating     Int           @map("fund_rating")
+  managerRating  Int           @map("manager_rating")
+  recommendTag   RecommendTag? @map("recommend_tag")
+  comment        String?
+  createdAt      DateTime      @default(now()) @map("created_at")
+
+  evaluator User @relation("ExternalEvaluations", fields: [evaluatorId], references: [id])
+  fund      Fund @relation(fields: [fundId], references: [id])
+
+  @@map("external_evaluations")
+}
+
+model TalentEvidenceProfile {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  classId      String   @map("class_id")
+  generatedAt  DateTime @default(now()) @map("generated_at")
+
+  user  User           @relation("TalentProfiles", fields: [userId], references: [id])
+  class Class          @relation(fields: [classId], references: [id])
+  skills SkillEvidence[]
+
+  @@unique([userId, classId])
+  @@map("talent_evidence_profiles")
+}
+
+model SkillEvidence {
+  id        String @id @default(uuid())
+  profileId String @map("profile_id")
+  skillKey  String @map("skill_key")
+  level     String
+
+  profile TalentEvidenceProfile @relation(fields: [profileId], references: [id])
+
+  @@map("skill_evidence")
 }
