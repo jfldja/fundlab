@@ -11,3 +11,168 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+enum GlobalRole {
+  student
+  teacher
+  external_evaluator
+}
+
+enum ClassRole {
+  student
+  external_evaluator
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  globalRole   GlobalRole @map("global_role")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  // 這個人開的班（如果他是老師）
+  classesTaught     Class[]       @relation("TeacherClasses")
+  // 這個人加入過的班（學生或外部評議人身份）
+  enrollments       Enrollment[]
+  // 這個人管理的基金（經理人身份）
+  managedFunds      Fund[]        @relation("FundManager")
+
+  @@map("users")
+}
+
+model Class {
+  id        String   @id @default(uuid())
+  teacherId String   @map("teacher_id")
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  teacher      User          @relation("TeacherClasses", fields: [teacherId], references: [id])
+  enrollments  Enrollment[]
+  classCycles  ClassCycle[]
+  funds        Fund[]
+
+  @@map("classes")
+}
+
+model Enrollment {
+  id          String    @id @default(uuid())
+  userId      String    @map("user_id")
+  classId     String    @map("class_id")
+  roleInClass ClassRole @map("role_in_class")
+
+  user  User  @relation(fields: [userId], references: [id])
+  class Class @relation(fields: [classId], references: [id])
+
+  @@unique([userId, classId])
+  @@map("enrollments")
+}
+enum ClassCycleStatus {
+  locked
+  current
+  done
+}
+
+model CycleTemplate {
+  cycleNumber Int    @id @map("cycle_number")
+  title       String
+  dayNotes    Json?  @map("day_notes")
+
+  classCycles ClassCycle[]
+
+  @@map("cycle_templates")
+}
+
+model ClassCycle {
+  id           String            @id @default(uuid())
+  classId      String            @map("class_id")
+  cycleNumber  Int               @map("cycle_number")
+  currentDay   Int               @default(1) @map("current_day")
+  status       ClassCycleStatus
+  settledAt    DateTime?         @map("settled_at")
+
+  class         Class         @relation(fields: [classId], references: [id])
+  cycleTemplate CycleTemplate @relation(fields: [cycleNumber], references: [cycleNumber])
+
+  @@unique([classId, cycleNumber])
+  @@map("class_cycles")
+}
+enum TradeSide {
+  buy
+  sell
+}
+
+model Security {
+  ticker String @id
+  name   String
+
+  holdings FundHolding[]
+  trades   Trade[]
+
+  @@map("securities")
+}
+
+model Fund {
+  id        String   @id @default(uuid())
+  classId   String   @map("class_id")
+  managerId String   @map("manager_id")
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  class        Class             @relation(fields: [classId], references: [id])
+  manager      User              @relation("FundManager", fields: [managerId], references: [id])
+  holdings     FundHolding[]
+  navSnapshots FundNavSnapshot[]
+  trades       Trade[]
+
+  @@map("funds")
+}
+
+model FundHolding {
+  id        String    @id @default(uuid())
+  fundId    String    @map("fund_id")
+  ticker    String
+  shares    Decimal   @db.Decimal(18, 4)
+  avgCost   Decimal?  @map("avg_cost") @db.Decimal(18, 4)
+  updatedAt DateTime? @updatedAt @map("updated_at")
+
+  fund     Fund     @relation(fields: [fundId], references: [id])
+  security Security @relation(fields: [ticker], references: [ticker])
+
+  @@map("fund_holdings")
+}
+
+model FundNavSnapshot {
+  id                  String   @id @default(uuid())
+  fundId              String   @map("fund_id")
+  cycleNumber         Int      @map("cycle_number")
+  day                 Int
+  nav                 Decimal  @db.Decimal(18, 4)
+  aum                 Decimal? @db.Decimal(18, 4)
+  cash                Decimal? @db.Decimal(18, 4)
+  cumulativeReturnPct Decimal? @map("cumulative_return_pct") @db.Decimal(8, 4)
+  sharpe              Decimal? @db.Decimal(8, 4)
+  mddPct              Decimal? @map("mdd_pct") @db.Decimal(8, 4)
+
+  fund Fund @relation(fields: [fundId], references: [id])
+
+  @@unique([fundId, cycleNumber, day])
+  @@map("fund_nav_snapshots")
+}
+
+model Trade {
+  id          String    @id @default(uuid())
+  fundId      String    @map("fund_id")
+  cycleNumber Int       @map("cycle_number")
+  ticker      String
+  side        TradeSide
+  shares      Decimal   @db.Decimal(18, 4)
+  price       Decimal   @db.Decimal(18, 4)
+  amount      Decimal   @db.Decimal(18, 4)
+  reasonNote  String?   @map("reason_note")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  fund     Fund     @relation(fields: [fundId], references: [id])
+  security Security @relation(fields: [ticker], references: [ticker])
+
+  @@map("trades")
+}
