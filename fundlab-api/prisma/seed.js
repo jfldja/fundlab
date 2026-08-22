@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { PrismaClient } from "../src/generated/prisma/client.ts";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { hashPassword } from "../src/utils/password.js";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
@@ -40,7 +41,7 @@ async function main() {
     data: {
       name: "陳教授",
       email: "teacher1@fundlab.local",
-      passwordHash: "demo-placeholder-hash",
+      passwordHash: await hashPassword("password123"),
       globalRole: "teacher",
     },
   });
@@ -49,7 +50,7 @@ async function main() {
     data: {
       name: "王小明",
       email: "student1@fundlab.local",
-      passwordHash: "demo-placeholder-hash",
+      passwordHash: await hashPassword("password123"),
       globalRole: "student",
     },
   });
@@ -58,7 +59,7 @@ async function main() {
     data: {
       name: "林大華",
       email: "student2@fundlab.local",
-      passwordHash: "demo-placeholder-hash",
+      passwordHash: await hashPassword("password123"),
       globalRole: "student",
     },
   });
