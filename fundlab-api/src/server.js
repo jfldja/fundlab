@@ -5,6 +5,7 @@ import { PrismaClient } from "./generated/prisma/client.ts";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { createAuthRouter } from "./routes/auth.js";
 import { requireAuth, requireRole } from "./middleware/auth.js";
+import { createClassesRouter } from "./routes/classes.js";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
@@ -13,6 +14,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use("/auth", createAuthRouter(prisma));
+app.use("/classes", createClassesRouter(prisma));
 
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });
