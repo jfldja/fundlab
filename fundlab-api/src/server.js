@@ -4,6 +4,7 @@ import cors from "cors";
 import { PrismaClient } from "./generated/prisma/client.ts";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { createAuthRouter } from "./routes/auth.js";
+import { requireAuth } from "./middleware/auth.js";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
@@ -15,6 +16,10 @@ app.use("/auth", createAuthRouter(prisma));
 
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });
+});
+
+app.get("/me", requireAuth, (req, res) => {
+  res.json({ message: "你通過驗證了", user: req.user });
 });
 
 app.get("/db-check", async (req, res) => {
