@@ -7,6 +7,7 @@ import { createAuthRouter } from "./routes/auth.js";
 import { requireAuth, requireRole } from "./middleware/auth.js";
 import { createClassesRouter } from "./routes/classes.js";
 import { createClassCyclesRouter } from "./routes/classCycles.js";
+import { createTradesRouter } from "./routes/trades.js";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
@@ -17,7 +18,7 @@ app.use(express.json());
 app.use("/auth", createAuthRouter(prisma));
 app.use("/classes", createClassesRouter(prisma));
 app.use("/classes", createClassCyclesRouter(prisma));
-
+app.use("/funds", createTradesRouter(prisma));
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });
 });

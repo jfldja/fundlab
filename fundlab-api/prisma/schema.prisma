@@ -154,6 +154,7 @@ model FundHolding {
   security Security @relation(fields: [ticker], references: [ticker])
 
   @@map("fund_holdings")
+  @@unique([fundId, ticker])
 }
 
 model FundNavSnapshot {

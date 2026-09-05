@@ -133,6 +133,13 @@ const fundI = await prisma.fund.create({
       cumulativeReturnPct: 18.42,
     },
   });
+  await prisma.security.createMany({
+  data: [
+    { ticker: "2330", name: "台積電" },
+    { ticker: "2454", name: "聯發科" },
+    { ticker: "2317", name: "鴻海" },
+  ],
+});
 
   console.log("Seed 完成！");
 }
