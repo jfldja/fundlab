@@ -123,6 +123,7 @@ model Fund {
   classId   String   @map("class_id")
   managerId String   @map("manager_id")
   name      String
+  cashBalance Decimal  @default(0) @db.Decimal(18, 4) @map("cash_balance")
   createdAt DateTime @default(now()) @map("created_at")
 
   class        Class             @relation(fields: [classId], references: [id])

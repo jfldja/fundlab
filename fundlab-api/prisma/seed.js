@@ -96,13 +96,22 @@ async function main() {
   }
 
   // 5. 兩檔基金
-  const fundM = await prisma.fund.create({
-    data: { classId: klass.id, managerId: student.id, name: "科技成長一號" },
-  });
-  const fundI = await prisma.fund.create({
-    data: { classId: klass.id, managerId: otherManager.id, name: "半導體先鋒" },
-  });
-
+const fundM = await prisma.fund.create({
+  data: {
+    classId: klass.id,
+    managerId: student.id,
+    name: "科技成長一號",
+    cashBalance: 1738200, // 對應原型 data.js 的現金水位
+  },
+});
+const fundI = await prisma.fund.create({
+  data: {
+    classId: klass.id,
+    managerId: otherManager.id,
+    name: "半導體先鋒",
+    cashBalance: 1500000, // 原型沒有這個數字，比照 FUND_M 現金比例推算補上
+  },
+});
   // 6. 各自的初始 NAV 快照
   await prisma.fundNavSnapshot.create({
     data: {
